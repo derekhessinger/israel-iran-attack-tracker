@@ -1,5 +1,7 @@
 let map;
 let attackData = [];
+let mapMarkers = [];
+let selectedAttackId = null;
 
 function initMap() {
     map = L.map('map').setView([31.5, 35.0], 6);
@@ -10,18 +12,52 @@ function initMap() {
     }).addTo(map);
     
     loadAttackData();
+    setupEventListeners();
 }
 
-function loadAttackData() {
+async function loadAttackData() {
+    try {
+        showLoadingState(true);
+        const response = await fetch('/api/attacks');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        attackData = data.attacks.map(attack => ({
+            ...attack,
+            date: new Date(attack.date)
+        }));
+        
+        displayAttacks();
+        populateAttacksTable();
+        
+        if (data.lastUpdated) {
+            document.getElementById('update-time').textContent = 
+                new Date(data.lastUpdated).toLocaleTimeString();
+        }
+        
+        showLoadingState(false);
+        
+    } catch (error) {
+        console.error('Error loading attack data:', error);
+        showError('Failed to load attack data. Using offline mode.');
+        loadFallbackData();
+        showLoadingState(false);
+    }
+}
+
+function loadFallbackData() {
     attackData = [
         {
             id: 1,
             lat: 31.7683,
             lng: 35.2137,
             location: "Jerusalem, Israel",
-            date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+            date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
             type: "Missile Strike",
-            description: "Multiple missiles intercepted by Iron Dome system",
+            description: "Multiple missiles intercepted by Iron Dome system (Offline Data)",
             casualties: "No casualties reported"
         },
         {
@@ -29,44 +65,16 @@ function loadAttackData() {
             lat: 32.0853,
             lng: 34.7818,
             location: "Tel Aviv, Israel",
-            date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+            date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
             type: "Drone Attack",
-            description: "Drone intercepted over metropolitan area",
+            description: "Drone intercepted over metropolitan area (Offline Data)",
             casualties: "Minor injuries reported"
-        },
-        {
-            id: 3,
-            lat: 35.6944,
-            lng: 51.4215,
-            location: "Tehran, Iran",
-            date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
-            type: "Retaliatory Strike",
-            description: "Targeted military installation",
-            casualties: "Unknown"
-        },
-        {
-            id: 4,
-            lat: 33.5138,
-            lng: 36.2765,
-            location: "Damascus, Syria",
-            date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
-            type: "Air Strike",
-            description: "Strike on weapons depot",
-            casualties: "Military personnel"
-        },
-        {
-            id: 5,
-            lat: 32.7940,
-            lng: 35.0308,
-            location: "Haifa, Israel",
-            date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 days ago
-            type: "Rocket Attack",
-            description: "Rockets fired from Lebanon border",
-            casualties: "Property damage only"
         }
     ];
     
     displayAttacks();
+    populateAttacksTable();
+    updateLastUpdatedTime();
 }
 
 function getAttackAge(attackDate) {
@@ -102,6 +110,7 @@ function getMarkerStyle(daysOld) {
 }
 
 function displayAttacks() {
+    clearMapMarkers();
     attackData.forEach(attack => {
         const daysOld = getAttackAge(attack.date);
         const style = getMarkerStyle(daysOld);
@@ -133,7 +142,11 @@ function displayAttacks() {
         
         marker.on('click', () => {
             displayAttackDetails(attack);
+            selectTableRow(attack.id);
         });
+        
+        marker.attackId = attack.id;
+        mapMarkers.push(marker);
     });
 }
 
@@ -168,6 +181,169 @@ function displayAttackDetails(attack) {
     `;
     
     document.getElementById('attack-details').innerHTML = detailsHTML;
+    selectedAttackId = attack.id;
+}
+
+function clearMapMarkers() {
+    mapMarkers.forEach(marker => {
+        map.removeLayer(marker);
+    });
+    mapMarkers = [];
+}
+
+function setupEventListeners() {
+    document.getElementById('update-btn').addEventListener('click', updateAttackData);
+}
+
+async function updateAttackData() {
+    const updateBtn = document.getElementById('update-btn');
+    updateBtn.textContent = '🔄 Updating...';
+    updateBtn.disabled = true;
+    
+    try {
+        showLoadingState(true);
+        const response = await fetch('/api/attacks/refresh', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        attackData = data.attacks.map(attack => ({
+            ...attack,
+            date: new Date(attack.date)
+        }));
+        
+        displayAttacks();
+        populateAttacksTable();
+        
+        if (data.lastUpdated) {
+            document.getElementById('update-time').textContent = 
+                new Date(data.lastUpdated).toLocaleTimeString();
+        }
+        
+        showSuccess(`Updated successfully! Found ${data.count} attacks.`);
+        
+    } catch (error) {
+        console.error('Error updating attack data:', error);
+        showError('Failed to update data from server.');
+    } finally {
+        updateBtn.textContent = '🔄 Update Data';
+        updateBtn.disabled = false;
+        showLoadingState(false);
+    }
+}
+
+function showLoadingState(isLoading) {
+    const loadingElements = document.querySelectorAll('.loading-indicator');
+    const contentElements = document.querySelectorAll('#attacks-table, #map');
+    
+    if (isLoading) {
+        contentElements.forEach(el => el.style.opacity = '0.5');
+        if (loadingElements.length === 0) {
+            const loader = document.createElement('div');
+            loader.className = 'loading-indicator';
+            loader.innerHTML = '<div class="spinner"></div><p>Loading attack data...</p>';
+            document.getElementById('attacks-table-container').appendChild(loader);
+        }
+    } else {
+        contentElements.forEach(el => el.style.opacity = '1');
+        loadingElements.forEach(el => el.remove());
+    }
+}
+
+function showError(message) {
+    showNotification(message, 'error');
+}
+
+function showSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showNotification(message, type) {
+    const existing = document.querySelector('.notification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+function populateAttacksTable() {
+    const tbody = document.getElementById('attacks-tbody');
+    tbody.innerHTML = '';
+    
+    attackData.forEach(attack => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-attack-id', attack.id);
+        
+        const daysOld = getAttackAge(attack.date);
+        const timeAgo = daysOld === 0 ? 'Today' : 
+                       daysOld === 1 ? '1 day ago' : 
+                       `${daysOld} days ago`;
+        
+        let statusClass = 'status-old';
+        let statusText = 'Old';
+        if (daysOld <= 7) {
+            statusClass = 'status-recent';
+            statusText = 'Recent';
+        } else if (daysOld <= 30) {
+            statusClass = 'status-moderate';
+            statusText = 'Moderate';
+        }
+        
+        row.innerHTML = `
+            <td>${attack.location}</td>
+            <td>${attack.type}</td>
+            <td>${timeAgo}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+        `;
+        
+        row.addEventListener('click', () => {
+            displayAttackDetails(attack);
+            selectTableRow(attack.id);
+            highlightMapMarker(attack.id);
+        });
+        
+        tbody.appendChild(row);
+    });
+}
+
+function selectTableRow(attackId) {
+    document.querySelectorAll('#attacks-table tbody tr').forEach(row => {
+        row.classList.remove('selected');
+    });
+    
+    const selectedRow = document.querySelector(`[data-attack-id="${attackId}"]`);
+    if (selectedRow) {
+        selectedRow.classList.add('selected');
+    }
+}
+
+function highlightMapMarker(attackId) {
+    const marker = mapMarkers.find(m => m.attackId === attackId);
+    if (marker) {
+        marker.openPopup();
+        map.setView(marker.getLatLng(), 8);
+    }
+}
+
+function updateLastUpdatedTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    document.getElementById('update-time').textContent = timeString;
 }
 
 document.addEventListener('DOMContentLoaded', initMap);

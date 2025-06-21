@@ -26,12 +26,37 @@
         </div>
     </div>
     
-    <div id="map"></div>
+    <div id="main-content">
+        <div id="map"></div>
+        
+        <div id="side-panel">
+            <div id="controls">
+                <button id="update-btn">🔄 Update Data</button>
+                <div id="last-updated">Last updated: <span id="update-time">Never</span></div>
+            </div>
+            
+            <div id="attacks-table-container">
+                <h3>Recent Attacks</h3>
+                <table id="attacks-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attacks-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     
     <div id="info-panel">
         <h3>Attack Information</h3>
         <div id="attack-details">
-            <p>Click on a marker to view attack details</p>
+            <p>Click on a marker or table row to view attack details</p>
         </div>
     </div>
 
