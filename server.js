@@ -55,8 +55,7 @@ const summaryIndicators = [
 const strengthenedExcludeKeywords = [
     ...excludeKeywords,
     ...summaryIndicators,
-    'report:', 'reports say', 'according to', 'sources suggest',
-    'it is believed', 'allegedly', 'reportedly', 'claim', 'claims'
+    'sources suggest', 'it is believed', 'claim', 'claims'
 ];
 
 // Require stronger action indicators for valid attacks
@@ -312,7 +311,7 @@ function parseArticlesToAttacks(articles, existingAttacks = []) {
         
         // Calculate content quality score
         const qualityScore = calculateContentQualityScore(article);
-        if (qualityScore < 35) {
+        if (qualityScore < 25) {
             console.log(`Filtered out article: ${article.title} (low quality score: ${qualityScore})`);
             return;
         }
