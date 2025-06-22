@@ -27,7 +27,13 @@ const locationCoords = {
     'israel': { lat: 31.5, lng: 34.75, country: 'Israel' },
     'iran': { lat: 32.4279, lng: 53.6880, country: 'Iran' },
     'lebanon': { lat: 33.8547, lng: 35.8623, country: 'Lebanon' },
-    'syria': { lat: 34.8021, lng: 38.9968, country: 'Syria' }
+    'syria': { lat: 34.8021, lng: 38.9968, country: 'Syria' },
+    'united states': { lat: 38.9072, lng: -77.0369, country: 'United States' },
+    'usa': { lat: 38.9072, lng: -77.0369, country: 'United States' },
+    'us': { lat: 38.9072, lng: -77.0369, country: 'United States' },
+    'america': { lat: 38.9072, lng: -77.0369, country: 'United States' },
+    'washington': { lat: 38.9072, lng: -77.0369, country: 'United States' },
+    'pentagon': { lat: 38.8719, lng: -77.0563, country: 'United States' }
 };
 
 const attackKeywords = [
@@ -160,12 +166,12 @@ function isDuplicateAttack(newAttack, existingAttacks) {
             return { isDuplicate: true, existingAttack: existing, reason: 'URL match' };
         }
         
-        // Check title similarity (80% threshold)
+        // Check title similarity (90% threshold - more strict)
         const titleSimilarity = calculateStringSimilarity(
             newAttack.description.toLowerCase(),
             existing.description.toLowerCase()
         );
-        if (titleSimilarity > 0.8) {
+        if (titleSimilarity > 0.9) {
             return { isDuplicate: true, existingAttack: existing, reason: 'Title similarity' };
         }
         
@@ -175,7 +181,7 @@ function isDuplicateAttack(newAttack, existingAttacks) {
                 newAttack.description.toLowerCase(),
                 existing.description.toLowerCase()
             );
-            if (descSimilarity > 0.6) {
+            if (descSimilarity > 0.8) {
                 return { isDuplicate: true, existingAttack: existing, reason: 'Location-time proximity' };
             }
         }
@@ -218,12 +224,12 @@ async function fetchNewsData() {
         const newsAPIs = [
             {
                 name: 'NewsAPI',
-                url: `https://newsapi.org/v2/everything?q=(Israel AND Iran AND (attack OR strike OR missile OR rocket)) OR (Israel AND (intercepted OR fired OR launched)) OR (Iran AND (struck OR bombed OR targeted))&language=en&sortBy=publishedAt&pageSize=50&from=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`,
+                url: `https://newsapi.org/v2/everything?q=(Israel AND Iran AND (attack OR strike OR missile OR rocket)) OR (Israel AND (intercepted OR fired OR launched)) OR (Iran AND (struck OR bombed OR targeted)) OR (US AND Iran AND (strike OR bomb OR attack)) OR (United States AND Iran AND (strike OR bomb OR attack))&language=en&sortBy=publishedAt&pageSize=50&from=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`,
                 headers: { 'X-API-Key': process.env.NEWS_API_KEY }
             },
             {
                 name: 'Guardian',
-                url: `https://content.guardianapis.com/search?q=(israel%20AND%20iran%20AND%20(attack%20OR%20strike%20OR%20missile))%20OR%20(israel%20AND%20intercepted)%20OR%20(iran%20AND%20struck)&show-fields=all&order-by=newest&page-size=20&from-date=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
+                url: `https://content.guardianapis.com/search?q=(israel%20AND%20iran%20AND%20(attack%20OR%20strike%20OR%20missile))%20OR%20(israel%20AND%20intercepted)%20OR%20(iran%20AND%20struck)%20OR%20(us%20AND%20iran%20AND%20(strike%20OR%20attack))%20OR%20(united%20states%20AND%20iran%20AND%20(strike%20OR%20attack))&show-fields=all&order-by=newest&page-size=20&from-date=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
                 headers: { 'api-key': process.env.GUARDIAN_API_KEY }
             }
         ];
@@ -331,10 +337,10 @@ function parseArticlesToAttacks(articles, existingAttacks = []) {
             return;
         }
         
-        // Check if article is recent (within last 7 days)
+        // Check if article is recent (within last 30 days)
         const articleDate = new Date(article.publishedAt);
         const daysSincePublished = (Date.now() - articleDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSincePublished > 7) {
+        if (daysSincePublished > 30) {
             console.log(`Filtered out article: ${article.title} (too old: ${daysSincePublished.toFixed(1)} days)`);
             return;
         }
