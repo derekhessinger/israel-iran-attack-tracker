@@ -2,14 +2,22 @@
 
 A real-time web application that displays recent attacks between Israel and Iran on an interactive map with tabular data display.
 
+![Israel/Iran Attack Tracker](website_prev.png)
+
+*Professional threat intelligence dashboard with real-time attack monitoring, quality assessment, and multi-source verification.*
+
 ## Features
 
 - **Interactive Map**: Leaflet.js-powered map with attack location markers
+- **Intelligence-Grade Quality Assessment**: Confidence scoring and source verification
+- **Multi-Source Verification**: Consolidates and verifies attacks across multiple news sources
+- **Real-Time Data**: Pulls attack data from news APIs (NewsAPI, Guardian) with US strike detection
+- **Professional UI**: Enhanced table with quality indicators, confidence badges, and source counts
+- **Smart Deduplication**: Advanced algorithms prevent duplicate attacks and consolidate reports
 - **Recency-Based Visualization**: Recent attacks show larger, more prominent markers
-- **Real-Time Data**: Pulls attack data from news APIs (NewsAPI, Guardian)
-- **Side Table**: Detailed attack information with clickable rows
 - **Auto-Updates**: Scheduled data refresh every 15 minutes
 - **Fallback Mode**: Works offline with sample data if APIs are unavailable
+- **Empty State Handling**: Helpful messaging and activity indicators for low-conflict periods
 
 ## Setup
 
