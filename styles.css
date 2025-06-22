@@ -72,7 +72,7 @@ body {
 }
 
 #side-panel {
-    width: 350px;
+    width: 420px;
     background-color: #2c2c2c;
     border-left: 1px solid #444;
     display: flex;
@@ -130,7 +130,14 @@ body {
     background-color: #1a1a1a;
     border-radius: 5px;
     overflow: hidden;
+    table-layout: fixed;
 }
+
+#attacks-table th:nth-child(1) { width: 25%; } /* Location */
+#attacks-table th:nth-child(2) { width: 20%; } /* Type */  
+#attacks-table th:nth-child(3) { width: 18%; } /* Date */
+#attacks-table th:nth-child(4) { width: 17%; } /* Status */
+#attacks-table th:nth-child(5) { width: 20%; } /* Quality */
 
 #attacks-table th {
     background-color: #404040;
@@ -316,4 +323,114 @@ body {
 
 #attacks-table-container {
     position: relative;
+}
+
+/* New UI Elements */
+
+/* Empty state styling */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+}
+
+.empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.empty-icon {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.empty-content h3 {
+    color: #aaa;
+    font-size: 18px;
+    margin: 0;
+}
+
+.empty-content p {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Low activity notice */
+.low-activity-notice {
+    text-align: center;
+    padding: 15px;
+    background-color: rgba(255, 170, 0, 0.1);
+    border: 1px solid rgba(255, 170, 0, 0.3);
+    color: #ffaa00;
+    font-size: 13px;
+}
+
+.info-icon {
+    margin-right: 8px;
+}
+
+/* Quality indicators */
+.quality-cell {
+    text-align: center;
+    padding: 8px 4px;
+}
+
+.quality-indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+}
+
+/* Confidence badges */
+.confidence-badge {
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.confidence-high {
+    background-color: #44ff44;
+    color: #000;
+}
+
+.confidence-medium {
+    background-color: #ffaa00;
+    color: #000;
+}
+
+.confidence-low {
+    background-color: #ff4444;
+    color: #fff;
+}
+
+/* Source indicators */
+.source-indicator {
+    font-size: 11px;
+    padding: 2px 4px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Quality assessment in details */
+.quality-assessment {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.quality-assessment > div {
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }

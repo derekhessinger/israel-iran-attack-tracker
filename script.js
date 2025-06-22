@@ -179,14 +179,49 @@ function displayAttackDetails(attack) {
                    daysOld === 1 ? '1 day ago' : 
                    `${daysOld} days ago`;
     
+    // Quality assessment
+    const confidence = attack.confidence || 50;
+    const sourceCount = attack.sourceCount || 1;
+    
+    let confidenceColor = '#ff4444';
+    let confidenceText = 'Low Confidence';
+    if (confidence >= 70) {
+        confidenceColor = '#44ff44';
+        confidenceText = 'High Confidence';
+    } else if (confidence >= 50) {
+        confidenceColor = '#ffaa00';
+        confidenceText = 'Medium Confidence';
+    }
+    
+    // Source verification
+    const sourceVerification = sourceCount > 1 
+        ? `<span style="color: #44ff44;">✓ Verified by ${sourceCount} sources</span>`
+        : `<span style="color: #ffaa00;">⚠ Single source report</span>`;
+    
+    // Multiple source URLs
+    let sourceLinks = '';
+    if (attack.originalUrls && attack.originalUrls.length > 1) {
+        sourceLinks = '<p><strong>Sources:</strong></p><ul>';
+        attack.originalUrls.forEach((url, index) => {
+            sourceLinks += `<li><a href="${url}" target="_blank" style="color: #88ccff;">Source ${index + 1}</a></li>`;
+        });
+        sourceLinks += '</ul>';
+    } else if (attack.url && attack.url !== '#') {
+        sourceLinks = `<p><strong>Source:</strong> <a href="${attack.url}" target="_blank" style="color: #88ccff;">View original report</a></p>`;
+    }
+    
     const detailsHTML = `
         <h4>${attack.type}</h4>
+        <div class="quality-assessment" style="margin: 10px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+            <div style="color: ${confidenceColor};">🎯 ${confidenceText} (${confidence}%)</div>
+            <div>${sourceVerification}</div>
+        </div>
         <p><strong>Date:</strong> ${attack.date.toLocaleDateString()} (${timeAgo})</p>
         <p><strong>Location:</strong> ${attack.location}</p>
         <p><strong>Description:</strong> ${attack.description}</p>
         <p><strong>Casualties:</strong> ${attack.casualties}</p>
-        <p><strong>Source:</strong> ${attack.source || 'Unknown'}</p>
-        ${attack.url && attack.url !== '#' ? `<p><strong>More info:</strong> <a href="${attack.url}" target="_blank" style="color: #88ccff;">View original report</a></p>` : ''}
+        <p><strong>Primary Source:</strong> ${attack.source || 'Unknown'}</p>
+        ${sourceLinks}
     `;
     
     document.getElementById('attack-details').innerHTML = detailsHTML;
@@ -312,6 +347,34 @@ function populateAttacksTable() {
     const tbody = document.getElementById('attacks-tbody');
     tbody.innerHTML = '';
     
+    // Handle empty state
+    if (attackData.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+            <td colspan="5" class="empty-state">
+                <div class="empty-content">
+                    <span class="empty-icon">🔍</span>
+                    <h3>No attacks detected</h3>
+                    <p>System is monitoring for new incidents...</p>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(emptyRow);
+        return;
+    }
+    
+    // Handle low activity state
+    if (attackData.length <= 2) {
+        const infoRow = document.createElement('tr');
+        infoRow.innerHTML = `
+            <td colspan="5" class="low-activity-notice">
+                <span class="info-icon">ℹ️</span>
+                Limited recent activity detected (${attackData.length} incident${attackData.length === 1 ? '' : 's'})
+            </td>
+        `;
+        tbody.appendChild(infoRow);
+    }
+    
     attackData.forEach(attack => {
         const row = document.createElement('tr');
         row.setAttribute('data-attack-id', attack.id);
@@ -331,11 +394,34 @@ function populateAttacksTable() {
             statusText = 'Moderate';
         }
         
+        // Quality indicators
+        const confidence = attack.confidence || 50;
+        const sourceCount = attack.sourceCount || 1;
+        
+        let confidenceClass = 'confidence-low';
+        let confidenceText = 'Low';
+        if (confidence >= 70) {
+            confidenceClass = 'confidence-high';
+            confidenceText = 'High';
+        } else if (confidence >= 50) {
+            confidenceClass = 'confidence-medium';
+            confidenceText = 'Medium';
+        }
+        
+        const sourceIcon = sourceCount > 1 ? '🔗' : '📰';
+        const sourceTitle = sourceCount > 1 ? `Verified by ${sourceCount} sources` : 'Single source';
+        
         row.innerHTML = `
             <td>${attack.location}</td>
             <td>${attack.type}</td>
             <td>${timeAgo}</td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td class="quality-cell">
+                <div class="quality-indicators">
+                    <span class="confidence-badge ${confidenceClass}" title="Confidence: ${confidence}%">${confidenceText}</span>
+                    <span class="source-indicator" title="${sourceTitle}">${sourceIcon}${sourceCount}</span>
+                </div>
+            </td>
         `;
         
         row.addEventListener('click', () => {
