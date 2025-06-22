@@ -25,7 +25,7 @@ function initMap() {
 async function loadAttackData() {
     try {
         showLoadingState(true);
-        const response = await fetch('/api/attacks');
+        const response = await fetch('http://localhost:3000/api/attacks');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -219,7 +219,7 @@ async function updateAttackData() {
     
     try {
         showLoadingState(true);
-        const response = await fetch('/api/attacks/refresh', {
+        const response = await fetch('http://localhost:3000/api/attacks/refresh', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
