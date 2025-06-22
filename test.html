@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Test</title>
+</head>
+<body>
+    <button id="update-btn">🔄 Update Data</button>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('update-btn').addEventListener('click', async () => {
+            console.log('Button clicked!');
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Button clicked! Testing API...';
+            
+            try {
+                const response = await fetch('/api/attacks/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `Success! Got ${data.count} attacks at ${new Date(data.lastUpdated).toLocaleTimeString()}`;
+                } else {
+                    resultDiv.innerHTML = `Error: ${response.status}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

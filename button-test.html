@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        #update-btn {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 20px;
+        }
+        #result {
+            margin: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Update Button Test</h1>
+    <button id="update-btn">🔄 Update Data</button>
+    <div id="result">Click the button to test...</div>
+    
+    <script>
+        console.log('Script starting...');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            
+            const updateBtn = document.getElementById('update-btn');
+            const resultDiv = document.getElementById('result');
+            
+            console.log('Button found:', updateBtn);
+            
+            if (updateBtn) {
+                updateBtn.addEventListener('click', async function() {
+                    console.log('Button clicked!');
+                    resultDiv.innerHTML = 'Button clicked! Making API request...';
+                    
+                    updateBtn.textContent = '🔄 Updating...';
+                    updateBtn.disabled = true;
+                    
+                    try {
+                        const response = await fetch('/api/attacks/refresh', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            resultDiv.innerHTML = `SUCCESS! Got ${data.count} attacks. Last updated: ${new Date(data.lastUpdated).toLocaleTimeString()}`;
+                        } else {
+                            resultDiv.innerHTML = `ERROR: ${response.status} - ${response.statusText}`;
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        resultDiv.innerHTML = `FETCH ERROR: ${error.message}`;
+                    } finally {
+                        updateBtn.textContent = '🔄 Update Data';
+                        updateBtn.disabled = false;
+                    }
+                });
+            } else {
+                resultDiv.innerHTML = 'ERROR: Update button not found!';
+            }
+        });
+    </script>
+</body>
+</html>

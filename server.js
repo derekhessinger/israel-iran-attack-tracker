@@ -35,17 +35,31 @@ const attackKeywords = [
     'retaliation', 'casualties', 'injured', 'killed', 'military'
 ];
 
+const actualAttackKeywords = [
+    'launched', 'fired', 'intercepted', 'struck', 'hit', 'targeted',
+    'attacked', 'bombed', 'shelled', 'exploded', 'destroyed',
+    'intercepting', 'incoming', 'under attack', 'breaking'
+];
+
+const excludeKeywords = [
+    'analysis', 'opinion', 'could', 'might', 'may', 'potential',
+    'possible', 'fears', 'threatens', 'warning', 'diplomatic',
+    'negotiations', 'talks', 'summit', 'meeting', 'conference',
+    'history', 'background', 'explained', 'timeline', 'years ago',
+    'months ago', 'previously', 'earlier', 'past', 'former'
+];
+
 async function fetchNewsData() {
     try {
         const newsAPIs = [
             {
                 name: 'NewsAPI',
-                url: `https://newsapi.org/v2/everything?q=(Israel AND Iran) OR (Israel AND attack) OR (Iran AND strike)&language=en&sortBy=publishedAt&pageSize=50`,
+                url: `https://newsapi.org/v2/everything?q=(Israel AND Iran AND (attack OR strike OR missile OR rocket)) OR (Israel AND (intercepted OR fired OR launched)) OR (Iran AND (struck OR bombed OR targeted))&language=en&sortBy=publishedAt&pageSize=50&from=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`,
                 headers: { 'X-API-Key': process.env.NEWS_API_KEY }
             },
             {
                 name: 'Guardian',
-                url: `https://content.guardianapis.com/search?q=israel%20iran%20attack&show-fields=all&order-by=newest&page-size=20`,
+                url: `https://content.guardianapis.com/search?q=(israel%20AND%20iran%20AND%20(attack%20OR%20strike%20OR%20missile))%20OR%20(israel%20AND%20intercepted)%20OR%20(iran%20AND%20struck)&show-fields=all&order-by=newest&page-size=20&from-date=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
                 headers: { 'api-key': process.env.GUARDIAN_API_KEY }
             }
         ];
@@ -120,15 +134,40 @@ function parseArticlesToAttacks(articles) {
     articles.forEach((article, index) => {
         const text = `${article.title} ${article.description} ${article.content}`.toLowerCase();
         
+        // Check for exclusion keywords first
+        const hasExcludeKeyword = excludeKeywords.some(keyword => text.includes(keyword));
+        if (hasExcludeKeyword) {
+            console.log(`Filtered out article: ${article.title} (exclusion keyword found)`);
+            return;
+        }
+        
+        // Must have both attack keywords AND actual attack keywords
         const hasAttackKeyword = attackKeywords.some(keyword => text.includes(keyword));
-        if (!hasAttackKeyword) return;
+        const hasActualAttackKeyword = actualAttackKeywords.some(keyword => text.includes(keyword));
+        
+        if (!hasAttackKeyword || !hasActualAttackKeyword) {
+            console.log(`Filtered out article: ${article.title} (missing required keywords)`);
+            return;
+        }
         
         const location = findLocationInText(text);
-        if (!location) return;
+        if (!location) {
+            console.log(`Filtered out article: ${article.title} (no location found)`);
+            return;
+        }
+        
+        // Check if article is recent (within last 7 days)
+        const articleDate = new Date(article.publishedAt);
+        const daysSincePublished = (Date.now() - articleDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSincePublished > 7) {
+            console.log(`Filtered out article: ${article.title} (too old: ${daysSincePublished.toFixed(1)} days)`);
+            return;
+        }
         
         const attackType = determineAttackType(text);
         const casualties = extractCasualties(text);
         
+        console.log(`Added attack: ${article.title}`);
         attacks.push({
             id: attacks.length + 1,
             lat: location.lat,

@@ -4,14 +4,21 @@ let mapMarkers = [];
 let selectedAttackId = null;
 
 function initMap() {
-    map = L.map('map').setView([31.5, 35.0], 6);
+    try {
+        map = L.map('map').setView([31.5, 35.0], 6);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
+        
+        loadAttackData();
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        showError('Failed to initialize map. Some features may not work.');
+    }
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-    }).addTo(map);
-    
-    loadAttackData();
+    // Always set up event listeners regardless of map initialization
     setupEventListeners();
 }
 
@@ -178,6 +185,8 @@ function displayAttackDetails(attack) {
         <p><strong>Location:</strong> ${attack.location}</p>
         <p><strong>Description:</strong> ${attack.description}</p>
         <p><strong>Casualties:</strong> ${attack.casualties}</p>
+        <p><strong>Source:</strong> ${attack.source || 'Unknown'}</p>
+        ${attack.url && attack.url !== '#' ? `<p><strong>More info:</strong> <a href="${attack.url}" target="_blank" style="color: #88ccff;">View original report</a></p>` : ''}
     `;
     
     document.getElementById('attack-details').innerHTML = detailsHTML;
@@ -192,11 +201,19 @@ function clearMapMarkers() {
 }
 
 function setupEventListeners() {
-    document.getElementById('update-btn').addEventListener('click', updateAttackData);
+    const updateBtn = document.getElementById('update-btn');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', updateAttackData);
+    }
 }
 
 async function updateAttackData() {
     const updateBtn = document.getElementById('update-btn');
+    if (!updateBtn) {
+        console.error('Update button not found in updateAttackData');
+        return;
+    }
+    
     updateBtn.textContent = '🔄 Updating...';
     updateBtn.disabled = true;
     
@@ -214,11 +231,13 @@ async function updateAttackData() {
         }
         
         const data = await response.json();
-        attackData = data.attacks.map(attack => ({
+        const oldAttackCount = attackData.length;
+        const newAttackData = data.attacks.map(attack => ({
             ...attack,
             date: new Date(attack.date)
         }));
         
+        attackData = newAttackData;
         displayAttacks();
         populateAttacksTable();
         
@@ -227,14 +246,22 @@ async function updateAttackData() {
                 new Date(data.lastUpdated).toLocaleTimeString();
         }
         
-        showSuccess(`Updated successfully! Found ${data.count} attacks.`);
+        const newAttackCount = newAttackData.length;
+        if (newAttackCount > oldAttackCount) {
+            const newAttacks = newAttackCount - oldAttackCount;
+            showSuccess(`Updated successfully! Found ${newAttacks} new attack${newAttacks === 1 ? '' : 's'}.`);
+        } else {
+            showSuccess('Updated successfully! No new attacks found.');
+        }
         
     } catch (error) {
         console.error('Error updating attack data:', error);
         showError('Failed to update data from server.');
     } finally {
-        updateBtn.textContent = '🔄 Update Data';
-        updateBtn.disabled = false;
+        if (updateBtn) {
+            updateBtn.textContent = '🔄 Update Data';
+            updateBtn.disabled = false;
+        }
         showLoadingState(false);
     }
 }
